@@ -60,12 +60,12 @@ func _distribute_rewards(results: Dictionary) -> void:
 # ---- Placeholder shop minigame (modal overlay) ----
 
 ## Run a timed fake minigame modal for a shop landing.
-## After the duration, collects the product and calls TurnManager.end_turn().
+## After the duration, collects the product and calls TurnManager.end_step_action().
 func run_placeholder(shop_id: StringName, minigame_layer: CanvasLayer) -> void:
 	var packed := load(FAKE_MINIGAME_SCENE) as PackedScene
 	if packed == null:
 		push_error("Cannot load FakeMinigame scene")
-		TurnManager.end_turn()
+		TurnManager.end_step_action()
 		return
 
 	var instance := packed.instantiate()
@@ -81,4 +81,4 @@ func run_placeholder(shop_id: StringName, minigame_layer: CanvasLayer) -> void:
 
 	instance.queue_free()
 	minigame_finished.emit(shop_id)
-	TurnManager.end_turn()
+	TurnManager.end_step_action()

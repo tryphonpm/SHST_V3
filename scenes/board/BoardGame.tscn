@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://c3board"]
+[gd_scene load_steps=6 format=3 uid="uid://c3board"]
 
 [ext_resource type="Script" uid="uid://e5io7xjdijhw" path="res://scripts/board/board_game.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://c2hud" path="res://scenes/ui/HUD.tscn" id="2_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ShoppingListPanel.tscn" id="3_slp"]
-[ext_resource type="Script" uid="uid://gjpsn646ybkl" path="res://scripts/board/street_board.gd" id="4_street"]
+[ext_resource type="Script" uid="uid://bx3bv84vm6isq" path="res://scripts/board/loop_board.gd" id="4_street"]
+[ext_resource type="PackedScene" path="res://scenes/ui/DiceRoller.tscn" id="5_dice"]
 
 [node name="BoardGame" type="Node2D"]
 script = ExtResource("1_script")
@@ -12,10 +13,11 @@ script = ExtResource("1_script")
 position_smoothing_enabled = true
 position_smoothing_speed = 8.0
 
-[node name="StreetBoard" type="Node2D" parent="."]
+[node name="LoopBoard" type="Node2D" parent="."]
 script = ExtResource("4_street")
 
 [node name="PlayerTokensLayer" type="Node2D" parent="."]
+z_index = 2
 
 [node name="UILayer" type="CanvasLayer" parent="."]
 
@@ -43,6 +45,9 @@ custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 focus_neighbor_left = NodePath("../DiceButton")
 text = "Shopping List"
+
+[node name="DiceRoller" parent="UILayer" instance=ExtResource("5_dice")]
+layout_mode = 3
 
 [node name="ShoppingListPanel" parent="UILayer" instance=ExtResource("3_slp")]
 

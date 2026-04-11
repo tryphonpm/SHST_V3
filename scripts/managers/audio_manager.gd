@@ -34,9 +34,12 @@ func _ensure_buses() -> void:
 
 func _register_defaults() -> void:
 	# Populate once real assets exist:
-	# register_audio("home_theme", "res://audio/bgm/home_theme.ogg")
-	# register_audio("menu_move",  "res://audio/sfx/menu_move.wav")
-	# register_audio("menu_confirm","res://audio/sfx/menu_confirm.wav")
+	# register_audio("home_theme",   "res://audio/bgm/home_theme.ogg")
+	# register_audio("menu_move",    "res://audio/sfx/menu_move.wav")
+	# register_audio("menu_confirm", "res://audio/sfx/menu_confirm.wav")
+	# TODO: add actual .ogg files under assets/sfx/
+	# register_audio("dice_shuffle", "res://assets/sfx/dice_shuffle.ogg")
+	# register_audio("dice_land",    "res://assets/sfx/dice_land.ogg")
 	pass
 
 ## Register an audio stream by key so it can be played by name.

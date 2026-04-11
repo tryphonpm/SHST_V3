@@ -1,0 +1,54 @@
+[gd_scene load_steps=2 format=3 uid="uid://dice_roller"]
+
+[ext_resource type="Script" path="res://scripts/ui/dice_roller.gd" id="1_script"]
+
+[node name="DiceRoller" type="Control"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -64.0
+offset_top = -64.0
+offset_right = 64.0
+offset_bottom = 64.0
+grow_horizontal = 2
+grow_vertical = 2
+visible = false
+script = ExtResource("1_script")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="FaceDisplay" type="TextureRect" parent="CenterContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(128, 128)
+stretch_mode = 5
+
+[node name="FallbackBG" type="ColorRect" parent="CenterContainer/FaceDisplay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.15, 0.15, 0.2, 0.9)
+
+[node name="FallbackLabel" type="Label" parent="CenterContainer/FaceDisplay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]

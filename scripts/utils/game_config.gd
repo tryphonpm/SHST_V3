@@ -6,14 +6,18 @@ const VERSION := "0.1.0"
 
 # Dice
 const DICE_FACES: int = 6
+const DICE_FACE_COUNT := 6
+const DICE_ROLL_SHUFFLE_DURATION := 1.2
+const DICE_ROLL_SHUFFLE_TICK := 0.08
+const DICE_RESULT_HOLD_DURATION := 0.6
+const DICE_SPRITE_SIZE := Vector2(128, 128)
 
-# Rounds
-const MAX_ROUNDS: int = 10
-const MIN_ROUNDS: int = 5
-const MAX_ROUNDS_CAP: int = 20
+# Lap-based end condition.
+# A "lap" = one full clockwise traversal of the 34-cell pavement loop.
+const REQUIRED_LAPS_TO_END := 1
 
-## Runtime override — set via Parameters screen.
-static var current_rounds: int = MAX_ROUNDS
+## Runtime override — adjusted via Parameters screen (range 1..5).
+static var required_laps: int = REQUIRED_LAPS_TO_END
 
 # Economy
 const STAR_COST: int = 20
@@ -27,26 +31,61 @@ const COINS_MINIGAME_LOSE: int = 0
 const MAX_PLAYERS: int = 4
 const MIN_PLAYERS: int = 2
 
-# Board — street layout
-const STREET_CELL_COUNT := 64
-const CELL_SIZE := Vector2(96, 96)
+# Board — rectangular pavement loop around a central building.
+# Cells are 0-based internally; the UI displays index + 1 (so cell 0 shows as "1").
+#
+# Layout (clockwise from top-left):
+#   Top row    : cells  0..11  (displayed  1..12) — left → right
+#   Right col  : cells 12..17  (displayed 13..18) — top  → bottom
+#   Bottom row : cells 18..28  (displayed 19..29) — right → left
+#   Left col   : cells 29..33  (displayed 30..34) — bottom → top
+#
+const LOOP_CELL_COUNT  := 34
+const LOOP_START_INDEX := 0
+const LOOP_END_INDEX   := LOOP_CELL_COUNT - 1   # == 33
+
+const LOOP_TOP_COUNT    := 12   # cells 0..11
+const LOOP_RIGHT_COUNT  :=  6   # cells 12..17
+const LOOP_BOTTOM_COUNT := 11   # cells 18..28
+const LOOP_LEFT_COUNT   :=  5   # cells 29..33
+
+const CELL_SIZE := Vector2(96.0, 96.0)
 const DICE_MIN := 1
 const DICE_MAX := 6
-const CELL_HOP_DURATION := 0.15  # seconds per cell during movement tween
-const FAKE_MINIGAME_DURATION := 3.0  # seconds
+const CELL_HOP_DURATION      := 0.15   # seconds per cell during movement tween
+const FAKE_MINIGAME_DURATION := 3.0    # seconds
 
-## Maps shop id → cell index on the street.
-## Adding a new shop = adding one entry here + one .tres in data/shops/.
+## Gap between the inner edge of pavement cells and the building rect outline.
+const BUILDING_INNER_PADDING := Vector2(24.0, 24.0)
+
+## Maps shop id → anchor cell index (0-based, must be in [0, LOOP_CELL_COUNT)).
+## This dictionary is the SINGLE source of truth for gameplay anchoring.
+## Visual placement inside the building is randomised separately by LoopBoard.build().
+## Reminder: shop ↔ cell anchoring stays authoritative here; cosmetic position is in LoopBoard.
 const SHOP_CELL_INDICES: Dictionary = {
-	&"bakery":      6,
-	&"cheese_shop": 14,
-	&"butcher":     22,
-	&"newsagent":   32,
-	&"brasserie":   44,
-	&"pharmacy":    56,
+	&"bakery":       5,   # display  6 — top edge
+	&"butcher":      8,   # display  9 — top edge
+	&"cheese_shop": 32,   # display 33 — left edge
+	&"newsagent":   15,   # display 16 — right edge
+	&"brasserie":   21,   # display 22 — bottom edge
+	&"pharmacy":    26,   # display 27 — bottom edge
 }
 
-# Legacy (kept for non-street board variants)
+# Shop visual constants (purely presentational)
+const SHOP_VISUAL_SIZE  := Vector2(96.0, 96.0)
+const SHOP_LABEL_OFFSET := Vector2(0.0, -56.0)   # label floats above the shop sprite
+
+## Minimum pixel distance between two shop marker centres during random placement.
+const SHOP_MIN_SEPARATION := 120.0
+## Max random-placement attempts before falling back to a deterministic grid slot.
+const SHOP_PLACEMENT_MAX_ATTEMPTS := 32
+## Extra clearance (beyond SHOP_VISUAL_SIZE / 2) from the building rect edge to a shop centre.
+const SHOP_INNER_MARGIN := 8.0
+
+## Camera padding (px) outside the loop bounding rect.
+const CAMERA_LOOP_PADDING := 64.0
+
+# Legacy (kept for non-loop board variants)
 const PLAYER_MOVE_SPEED: float = 200.0
 const DICE_ROLL_DURATION: float = 1.0
 
@@ -67,7 +106,7 @@ const SHOPPING_LIST_MIN_SIZE := 3
 const SHOPPING_LIST_MAX_SIZE := 8
 static var shopping_list_size: int = 5
 const PRODUCTS_DIR := "res://data/products/"
-const SHOPS_DIR := "res://data/shops/"
+const SHOPS_DIR    := "res://data/shops/"
 
 # UI / Credits
 const CREDITS_SCROLL_SPEED: float = 40.0

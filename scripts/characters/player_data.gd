@@ -14,6 +14,7 @@ signal data_changed(property_name: String)
 @export var avatar_id: String = ""
 @export var shopping_list: Array[StringName] = []
 @export var collected_items: Array[StringName] = []
+@export var laps_completed: int = 0
 
 func add_coins(amount: int) -> void:
 	coins = maxi(coins + amount, 0)
@@ -48,6 +49,14 @@ func collect_product(product_id: StringName) -> void:
 	collected_items.append(product_id)
 	data_changed.emit("collected_items")
 
+func increment_laps() -> void:
+	laps_completed += 1
+	data_changed.emit("laps_completed")
+
+## True once this player has traversed the street the required number of times.
+func has_finished_street() -> bool:
+	return laps_completed >= GameConfig.required_laps
+
 func is_shopping_complete() -> bool:
 	return shopping_list.all(func(id: StringName) -> bool: return id in collected_items)
 
@@ -66,4 +75,5 @@ func reset() -> void:
 	shopping_list.clear()
 	collected_items.clear()
 	board_position = 0
+	laps_completed = 0
 	data_changed.emit("reset")

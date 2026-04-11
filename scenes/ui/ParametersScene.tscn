@@ -102,23 +102,23 @@ text = "Language"
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="RoundsRow" type="HBoxContainer" parent="MarginContainer/VBox"]
+[node name="LapsRow" type="HBoxContainer" parent="MarginContainer/VBox"]
 layout_mode = 2
-[node name="Label" type="Label" parent="MarginContainer/VBox/RoundsRow"]
+[node name="Label" type="Label" parent="MarginContainer/VBox/LapsRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(180, 0)
-text = "Rounds per Game"
-[node name="Slider" type="HSlider" parent="MarginContainer/VBox/RoundsRow"]
+text = "Laps to Finish"
+[node name="Slider" type="HSlider" parent="MarginContainer/VBox/LapsRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 5.0
-max_value = 20.0
+min_value = 1.0
+max_value = 5.0
 step = 1.0
-value = 10.0
-[node name="ValueLabel" type="Label" parent="MarginContainer/VBox/RoundsRow"]
+value = 1.0
+[node name="ValueLabel" type="Label" parent="MarginContainer/VBox/LapsRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(40, 0)
-text = "10"
+text = "1"
 horizontal_alignment = 1
 
 [node name="ShoppingRow" type="HBoxContainer" parent="MarginContainer/VBox"]

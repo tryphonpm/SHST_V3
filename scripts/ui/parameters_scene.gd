@@ -7,22 +7,25 @@ const SETTINGS_PATH := "user://settings.cfg"
 @onready var slider_sfx: HSlider      = $MarginContainer/VBox/SFXRow/Slider
 @onready var chk_fullscreen: CheckBox = $MarginContainer/VBox/FullscreenRow/CheckBox
 @onready var opt_language: OptionButton = $MarginContainer/VBox/LanguageRow/OptionButton
-@onready var slider_rounds: HSlider   = $MarginContainer/VBox/RoundsRow/Slider
-@onready var lbl_rounds: Label        = $MarginContainer/VBox/RoundsRow/ValueLabel
+@onready var slider_laps: HSlider     = $MarginContainer/VBox/LapsRow/Slider
+@onready var lbl_laps: Label          = $MarginContainer/VBox/LapsRow/ValueLabel
 @onready var slider_shopping: HSlider = $MarginContainer/VBox/ShoppingRow/Slider
 @onready var lbl_shopping: Label      = $MarginContainer/VBox/ShoppingRow/ValueLabel
 @onready var btn_apply: Button        = $MarginContainer/VBox/ButtonRow/BtnApply
 @onready var btn_back: Button         = $MarginContainer/VBox/ButtonRow/BtnBack
 
+const LAPS_MIN := 1
+const LAPS_MAX := 5
+
 func _ready() -> void:
 	_setup_language_dropdown()
 	_load_settings()
 
-	slider_rounds.min_value = GameConfig.MIN_ROUNDS
-	slider_rounds.max_value = GameConfig.MAX_ROUNDS_CAP
-	slider_rounds.step = 1
-	slider_rounds.value = GameConfig.current_rounds
-	lbl_rounds.text = str(int(slider_rounds.value))
+	slider_laps.min_value = LAPS_MIN
+	slider_laps.max_value = LAPS_MAX
+	slider_laps.step = 1
+	slider_laps.value = GameConfig.required_laps
+	lbl_laps.text = str(int(slider_laps.value))
 
 	slider_master.min_value = 0; slider_master.max_value = 100; slider_master.step = 1
 	slider_bgm.min_value = 0;   slider_bgm.max_value = 100;   slider_bgm.step = 1
@@ -34,7 +37,7 @@ func _ready() -> void:
 	slider_shopping.value = GameConfig.shopping_list_size
 	lbl_shopping.text = str(int(slider_shopping.value))
 
-	slider_rounds.value_changed.connect(func(v: float) -> void: lbl_rounds.text = str(int(v)))
+	slider_laps.value_changed.connect(func(v: float) -> void: lbl_laps.text = str(int(v)))
 	slider_shopping.value_changed.connect(func(v: float) -> void: lbl_shopping.text = str(int(v)))
 
 	btn_apply.pressed.connect(_apply)
@@ -60,7 +63,8 @@ func _load_settings() -> void:
 	slider_sfx.value    = cfg.get_value("audio", "sfx_volume", 100.0)
 	chk_fullscreen.button_pressed = cfg.get_value("video", "fullscreen", false)
 	opt_language.selected = cfg.get_value("locale", "language_index", 0)
-	slider_rounds.value = cfg.get_value("gameplay", "rounds", GameConfig.current_rounds)
+	# "rounds" key from old saves is silently ignored — unknown keys are harmless.
+	slider_laps.value = cfg.get_value("gameplay", "required_laps", GameConfig.required_laps)
 	slider_shopping.value = cfg.get_value("gameplay", "shopping_list_size", GameConfig.shopping_list_size)
 
 func _apply() -> void:
@@ -73,7 +77,7 @@ func _apply() -> void:
 	else:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 
-	GameConfig.current_rounds = int(slider_rounds.value)
+	GameConfig.required_laps = int(slider_laps.value)
 	GameConfig.shopping_list_size = int(slider_shopping.value)
 
 	_save_settings()
@@ -86,7 +90,7 @@ func _save_settings() -> void:
 	cfg.set_value("audio", "sfx_volume",    slider_sfx.value)
 	cfg.set_value("video", "fullscreen",    chk_fullscreen.button_pressed)
 	cfg.set_value("locale", "language_index", opt_language.selected)
-	cfg.set_value("gameplay", "rounds",     int(slider_rounds.value))
+	cfg.set_value("gameplay", "required_laps",      int(slider_laps.value))
 	cfg.set_value("gameplay", "shopping_list_size", int(slider_shopping.value))
 	cfg.save(SETTINGS_PATH)
 

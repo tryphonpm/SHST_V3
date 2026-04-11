@@ -10,3 +10,8 @@ res://scripts/board/board_game.gd
 res://scripts/managers/minigame_manager.gd
 res://scripts/managers/turn_manager.gd
 res://scripts/ui/hud.gd
+res://scripts/managers/audio_manager.gd
+res://scenes/ui/HUD.tscn
+res://scripts/board/pavement_cell.gd
+res://scripts/board/street_board.gd
+res://scripts/board/shop_marker.gd

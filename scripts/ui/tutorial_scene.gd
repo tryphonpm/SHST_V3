@@ -132,7 +132,7 @@ func _build_pages() -> void:
 	# ── Page 7 · Winning ─────────────────────────────────────────────────────
 	_pages.append(
 		"[center][b][font_size=22]How to Win[/font_size][/b][/center]\n\n"
-		+ "The game lasts [b]%d rounds[/b] (configurable in Parameters).\n\n" % GameConfig.current_rounds
+		+ "The game ends once every player completes [b]%d full lap(s)[/b] of the street (configurable in Parameters).\n\n" % GameConfig.required_laps
 		+ "Final score is determined by:\n"
 		+ "  1. [b]Shopping List[/b] — finishing your list first earns a bonus Star\n"
 		+ "  2. [b]Stars[/b] — each Star you collected counts toward your total\n"
