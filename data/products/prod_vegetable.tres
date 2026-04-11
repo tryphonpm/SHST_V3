@@ -1,0 +1,14 @@
+# TODO: Move to a future "Greengrocer" shop once that shop type exists.
+# Currently placed at bakery as a temporary placeholder.
+[gd_resource type="Resource" script_class="Product" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/product.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"vegetable"
+display_name = "Vegetable"
+shop_id = &"bakery"
+base_price = 3
+weight = 1.0
+tags = [&"food"]

@@ -1,0 +1,97 @@
+[gd_scene load_steps=2 format=3 uid="uid://main_menu"]
+
+[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_script"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.06, 0.15, 1)
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Spacer" type="Control" parent="VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+stretch_ratio = 0.3
+
+[node name="TitleLabel" type="Label" parent="VBox"]
+layout_mode = 2
+text = "SHITTY STREET v3"
+horizontal_alignment = 1
+
+[node name="Spacer2" type="Control" parent="VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+stretch_ratio = 0.2
+
+[node name="Buttons" type="VBoxContainer" parent="VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 16
+
+[node name="BtnPlay" type="Button" parent="VBox/Buttons"]
+layout_mode = 2
+custom_minimum_size = Vector2(280, 48)
+text = "Play"
+focus_neighbor_top = NodePath("../BtnCredits")
+focus_neighbor_bottom = NodePath("../BtnTutorial")
+
+[node name="BtnTutorial" type="Button" parent="VBox/Buttons"]
+layout_mode = 2
+custom_minimum_size = Vector2(280, 48)
+text = "Tutorial"
+focus_neighbor_top = NodePath("../BtnPlay")
+focus_neighbor_bottom = NodePath("../BtnParameters")
+
+[node name="BtnParameters" type="Button" parent="VBox/Buttons"]
+layout_mode = 2
+custom_minimum_size = Vector2(280, 48)
+text = "Parameters"
+focus_neighbor_top = NodePath("../BtnTutorial")
+focus_neighbor_bottom = NodePath("../BtnCredits")
+
+[node name="BtnCredits" type="Button" parent="VBox/Buttons"]
+layout_mode = 2
+custom_minimum_size = Vector2(280, 48)
+text = "Credits"
+focus_neighbor_top = NodePath("../BtnParameters")
+focus_neighbor_bottom = NodePath("../BtnPlay")
+
+[node name="Spacer3" type="Control" parent="VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+stretch_ratio = 0.5
+
+[node name="VersionLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -32.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "v0.1.0"
+horizontal_alignment = 2

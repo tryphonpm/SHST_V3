@@ -1,0 +1,73 @@
+[gd_scene load_steps=2 format=3 uid="uid://game_customization"]
+
+[ext_resource type="Script" path="res://scripts/ui/game_customization_scene.gd" id="1_script"]
+
+[node name="GameCustomizationScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.07, 0.05, 0.12, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 80
+theme_override_constants/margin_top = 48
+theme_override_constants/margin_right = 80
+theme_override_constants/margin_bottom = 48
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBox"]
+layout_mode = 2
+text = "Choose Your Character"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="MarginContainer/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+stretch_ratio = 0.2
+
+[node name="AvatarContainer" type="HBoxContainer" parent="MarginContainer/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 32
+
+[node name="Spacer2" type="Control" parent="MarginContainer/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+stretch_ratio = 0.3
+
+[node name="ButtonRow" type="HBoxContainer" parent="MarginContainer/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 32
+
+[node name="BtnBack" type="Button" parent="MarginContainer/VBox/ButtonRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 48)
+text = "Back"
+
+[node name="BtnStart" type="Button" parent="MarginContainer/VBox/ButtonRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 48)
+text = "Start Game"
+disabled = true

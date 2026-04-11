@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Shop" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/shop.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"newsagent"
+display_name = "Newsagent"
+board_marker = &"shop_newsagent"
+color = Color(0.2, 0.5, 0.85, 1)

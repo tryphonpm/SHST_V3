@@ -1,0 +1,50 @@
+[gd_scene load_steps=5 format=3 uid="uid://c3board"]
+
+[ext_resource type="Script" uid="uid://e5io7xjdijhw" path="res://scripts/board/board_game.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://c2hud" path="res://scenes/ui/HUD.tscn" id="2_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ShoppingListPanel.tscn" id="3_slp"]
+[ext_resource type="Script" uid="uid://gjpsn646ybkl" path="res://scripts/board/street_board.gd" id="4_street"]
+
+[node name="BoardGame" type="Node2D"]
+script = ExtResource("1_script")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0
+
+[node name="StreetBoard" type="Node2D" parent="."]
+script = ExtResource("4_street")
+
+[node name="PlayerTokensLayer" type="Node2D" parent="."]
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="HUD" parent="UILayer" instance=ExtResource("2_hud")]
+
+[node name="BottomBar" type="HBoxContainer" parent="UILayer"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -56.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="DiceButton" type="Button" parent="UILayer/BottomBar"]
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+focus_neighbor_right = NodePath("../ShoppingListButton")
+text = "Roll Dice"
+
+[node name="ShoppingListButton" type="Button" parent="UILayer/BottomBar"]
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+focus_neighbor_left = NodePath("../DiceButton")
+text = "Shopping List"
+
+[node name="ShoppingListPanel" parent="UILayer" instance=ExtResource("3_slp")]
+
+[node name="MinigameLayer" type="CanvasLayer" parent="."]
+layer = 10

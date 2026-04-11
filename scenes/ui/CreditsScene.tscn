@@ -1,0 +1,40 @@
+[gd_scene load_steps=2 format=3 uid="uid://credits_scene"]
+
+[ext_resource type="Script" path="res://scripts/ui/credits_scene.gd" id="1_script"]
+
+[node name="CreditsScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.02, 0.05, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 120
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 120
+theme_override_constants/margin_bottom = 32
+
+[node name="CreditsLabel" type="RichTextLabel" parent="MarginContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = ""
+scroll_active = true
+scroll_following = false

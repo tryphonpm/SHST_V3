@@ -1,0 +1,12 @@
+res://scenes/ui/HomeScreen.tscn
+res://scenes/board/BoardGame.tscn
+res://scripts/ui/home_screen.gd
+res://scripts/characters/player_data.gd
+res://scripts/managers/game_manager.gd
+res://scripts/ui/parameters_scene.gd
+res://scripts/utils/game_config.gd
+res://scripts/ui/tutorial_scene.gd
+res://scripts/board/board_game.gd
+res://scripts/managers/minigame_manager.gd
+res://scripts/managers/turn_manager.gd
+res://scripts/ui/hud.gd
