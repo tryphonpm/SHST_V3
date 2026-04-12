@@ -1,7 +1,7 @@
 extends CanvasLayer
 
 @onready var step_action_label: Label = $MarginContainer/VBox/StepActionLabel
-@onready var player_panels: HBoxContainer = $MarginContainer/VBox/PlayerPanels
+@onready var player_panels: VBoxContainer = $MarginContainer/VBox/PlayerPanels
 @onready var dice_result_label: Label = $MarginContainer/VBox/DiceResultLabel
 
 var _panel_map: Dictionary = {}  # player_id → Control
@@ -41,23 +41,23 @@ func _create_player_panel(pd: PlayerData) -> PanelContainer:
 	name_label.name = "NameLabel"
 	name_label.text = pd.display_name
 	name_label.add_theme_color_override("font_color", pd.color)
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 
 	var coins_label := Label.new()
 	coins_label.name = "CoinsLabel"
 	coins_label.text = "Coins: %d" % pd.coins
-	coins_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	coins_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 
 	var lap_label := Label.new()
 	lap_label.name = "LapLabel"
 	lap_label.text = "Lap %d / %d" % [pd.laps_completed, GameConfig.required_laps]
-	lap_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lap_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 
 	var pos_label := Label.new()
 	pos_label.name = "PositionLabel"
 	# Display 1-based cell number to match the board visual (cells 1..34).
 	pos_label.text = "Cell %d / %d" % [pd.board_position + 1, GameConfig.LOOP_CELL_COUNT]
-	pos_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pos_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 
 	vbox.add_child(name_label)
 	vbox.add_child(coins_label)
@@ -74,7 +74,7 @@ func _on_step_action_started(player_id: int) -> void:
 	dice_result_label.text = ""
 	var player := GameManager.get_player(player_id)
 	if player:
-		step_action_label.text += "  —  %s's turn" % player.display_name
+		step_action_label.text += "\n%s's turn" % player.display_name
 
 func _on_dice_roll_started(_player_id: int) -> void:
 	dice_result_label.text = "Rolling..."

@@ -1,13 +1,13 @@
 extends Node2D
 
-@onready var camera:               Camera2D      = $Camera2D
-@onready var loop_board:           LoopBoard     = $LoopBoard
-@onready var tokens_layer:         Node2D        = $PlayerTokensLayer
-@onready var dice_button:          Button        = $UILayer/BottomBar/DiceButton
-@onready var shopping_list_button: Button        = $UILayer/BottomBar/ShoppingListButton
+@onready var camera:               Camera2D       = $Camera2D
+@onready var loop_board:           LoopBoard      = $LoopBoard
+@onready var tokens_layer:         Node2D         = $PlayerTokensLayer
+@onready var dice_button:          Button         = $UILayer/BottomBar/DiceButton
+@onready var shopping_list_button: Button         = $UILayer/BottomBar/ShoppingListButton
 @onready var shopping_list_panel:  PanelContainer = $UILayer/ShoppingListPanel
-@onready var dice_roller:          Control       = $UILayer/DiceRoller
-@onready var minigame_layer:       CanvasLayer   = $MinigameLayer
+@onready var dice_roller:          Control        = $UILayer/DiceRoller
+@onready var minigame_layer:       CanvasLayer    = $MinigameLayer
 
 var _tokens:        Dictionary = {}   # player_id → ColorRect
 var _finish_badges: Dictionary = {}   # player_id → Label (FINISHED overlay)
@@ -15,14 +15,10 @@ var _is_busy    := false
 var _pending_roll_value := 0
 var _safety_timer: SceneTreeTimer = null
 
-## Session RNG: randomised once per game session, passed to LoopBoard.build()
-## so shop placement is seeded and reproducible.
+## Session RNG: randomised once per game, passed to LoopBoard.build().
 var _session_rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
-	# In Godot 4 children's _ready() runs before the parent's, so LoopBoard is
-	# in the tree — but its build() hasn't run yet (we call it explicitly below).
-
 	TurnManager.step_action_started.connect(_on_step_action_started)
 	TurnManager.dice_rolled.connect(_on_dice_rolled)
 	TurnManager.empty_cell_landed.connect(_on_empty_cell_landed)
@@ -40,13 +36,16 @@ func _ready() -> void:
 		push_warning("BoardGame: not enough players (%d), adding placeholder AI" % GameManager.players.size())
 		_fill_placeholder_players()
 
-	# Build the board (cells + building + randomly-placed shops) before anything
-	# else reads the cell array. _spawn_tokens() needs cells to exist.
-	_session_rng.randomize()
-	loop_board.build(_session_rng)
-	_setup_camera()
+	# ── Board topology (injected into both LoopBoard and TurnManager) ──
+	# TODO: will support Paris-district topology and graph-based routing —
+	# swap this line for a different BoardTopology subclass.
+	var topology := RectangularLoopTopology.new()
 
-	# GameManager.start_game() resets all PlayerData — assign shopping lists after.
+	_session_rng.randomize()
+	loop_board.build(topology, _session_rng)
+	TurnManager.set_topology(topology)
+	_setup_camera(topology)
+
 	GameManager.start_game()
 	GameManager.assign_shopping_lists()
 
@@ -71,34 +70,25 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # ---- Camera ----
 
-func _setup_camera() -> void:
-	var cs  := GameConfig.CELL_SIZE
-	var pad := GameConfig.CAMERA_LOOP_PADDING
+func _setup_camera(topology: BoardTopology) -> void:
+	var pad  := GameConfig.CAMERA_LOOP_PADDING
+	var rect := topology.get_bounding_rect()
 
-	# Bounding box of the full 34-cell loop (cell centres ± half-size).
-	var board_left   := -cs.x * 0.5
-	var board_top    := -cs.y * 0.5
-	var board_right  := (GameConfig.LOOP_TOP_COUNT - 1) * cs.x + cs.x * 0.5
-	var board_bottom := GameConfig.LOOP_RIGHT_COUNT     * cs.y + cs.y * 0.5
-
-	camera.limit_left   = int(board_left   - pad)
-	camera.limit_top    = int(board_top    - pad)
-	camera.limit_right  = int(board_right  + pad)
-	camera.limit_bottom = int(board_bottom + pad)
+	camera.limit_left   = int(rect.position.x - pad)
+	camera.limit_top    = int(rect.position.y - pad)
+	camera.limit_right  = int(rect.end.x      + pad)
+	camera.limit_bottom = int(rect.end.y      + pad)
 
 	# Zoom out to frame the whole board on smaller viewports.
 	var vp  := get_viewport_rect().size
-	var bw  := (board_right  - board_left)  + 2.0 * pad
-	var bh  := (board_bottom - board_top)   + 2.0 * pad
+	var bw  := rect.size.x + 2.0 * pad
+	var bh  := rect.size.y + 2.0 * pad
 	var fit := minf(vp.x / bw, vp.y / bh)
 	if fit < 1.0:
 		camera.zoom = Vector2(fit, fit)
 
-	# Start the camera centred on the building area.
-	camera.position = Vector2(
-		(GameConfig.LOOP_TOP_COUNT - 1) * cs.x * 0.5,
-		GameConfig.LOOP_RIGHT_COUNT     * cs.y * 0.5
-	)
+	# Start the camera centred on the board.
+	camera.position = rect.position + rect.size * 0.5
 
 func _focus_camera_on(player_id: int) -> void:
 	var token := _get_token(player_id)
@@ -142,7 +132,7 @@ func _on_dice_pressed() -> void:
 		shopping_list_panel.visible = false
 
 	_pending_roll_value = TurnManager.request_dice_roll()
-	dice_roller.visible   = true
+	dice_roller.visible    = true
 	dice_roller.modulate.a = 1.0
 	dice_roller.roll(_pending_roll_value)
 
@@ -161,7 +151,7 @@ func _on_dice_roll_finished(value: int) -> void:
 	var fade := create_tween()
 	fade.tween_property(dice_roller, "modulate:a", 0.0, 0.2)
 	fade.tween_callback(func() -> void:
-		dice_roller.visible   = false
+		dice_roller.visible    = false
 		dice_roller.modulate.a = 1.0
 		_animate_movement(value)
 	)
@@ -221,7 +211,11 @@ func _on_shop_landed(_player_id: int, shop_id: StringName) -> void:
 # ---- Shop bounce tween (purchase feedback) ----
 
 func _on_minigame_finished(shop_id: StringName) -> void:
-	var cell_idx: int = GameConfig.SHOP_CELL_INDICES.get(shop_id, -1)
+	var topo := TurnManager.get_topology()
+	if topo == null:
+		return
+	var indices := topo.get_shop_cell_indices()
+	var cell_idx: int = indices.get(shop_id, -1)
 	if cell_idx == -1:
 		return
 	var marker := loop_board.get_shop_marker_at_cell(cell_idx)
@@ -237,12 +231,11 @@ func _on_lap_completed(player_id: int, laps_done: int) -> void:
 	var token := _get_token(player_id)
 	if token == null:
 		return
-	# Celebratory flash + scale bump on the player token.
 	var tween := create_tween()
-	tween.tween_property(token, "scale",    Vector2(1.6, 1.6),      0.12)
-	tween.tween_property(token, "modulate", Color.WHITE * 2.0,       0.08)
-	tween.tween_property(token, "scale",    Vector2(1.0, 1.0),       0.12)
-	tween.tween_property(token, "modulate", Color.WHITE,             0.08)
+	tween.tween_property(token, "scale",    Vector2(1.6, 1.6), 0.12)
+	tween.tween_property(token, "modulate", Color.WHITE * 2.0, 0.08)
+	tween.tween_property(token, "scale",    Vector2(1.0, 1.0), 0.12)
+	tween.tween_property(token, "modulate", Color.WHITE,       0.08)
 	print("Player %d completed lap %d!" % [player_id, laps_done])
 
 func _on_player_finished_street(player_id: int) -> void:

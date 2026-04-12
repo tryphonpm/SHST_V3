@@ -1,12 +1,10 @@
 ## Migration notes:
 ##   • "turn" formerly meant one dice-roll cycle (old MAX_ROUNDS end condition — removed).
-##   • "turn" now means a FULL LAP of the 34-cell pavement loop by a single player.
+##   • "turn" now means a FULL LAP of the pavement loop by a single player.
 ##   • A single dice roll is called a "step action".
 ##   • Game ends when every player satisfies PlayerData.has_finished_street().
 ##   • step_action_count is a purely informational stat — NEVER an end condition.
-##   • Movement is modular: new_index = (old_index + steps) % LOOP_CELL_COUNT.
-##     A lap is counted each time the player crosses from LOOP_END_INDEX (33) to
-##     LOOP_START_INDEX (0).
+##   • Movement and lap detection are delegated to the injected BoardTopology.
 extends Node
 
 ## Emitted when a player's step action (one dice-roll cycle) begins.
@@ -30,6 +28,7 @@ var current_player_index: int = 0
 ## Purely informational — NEVER use this as an end condition.
 var step_action_count: int = 0
 
+var _topology: BoardTopology = null
 var _rng := RandomNumberGenerator.new()
 var _is_rolling    := false
 var _pending_roll_value := 0
@@ -41,9 +40,19 @@ func _ready() -> void:
 	# before clients animate.
 	_rng.randomize()
 
+# ---- Topology injection ----
+
+## Must be called before start_game() so movement and shop lookup work.
+func set_topology(topology: BoardTopology) -> void:
+	_topology = topology
+
+func get_topology() -> BoardTopology:
+	return _topology
+
 # ---- Game flow ----
 
 func start_game() -> void:
+	assert(_topology != null, "TurnManager: set_topology() must be called before start_game()")
 	current_player_index = 0
 	step_action_count = 0
 	_finished_players.clear()
@@ -56,8 +65,6 @@ func _start_current_step_action() -> void:
 
 # ---- Two-phase dice roll ----
 
-## Phase 1: compute the result and notify that animation should begin.
-## Returns the final value so the caller can pass it to DiceRoller.
 func request_dice_roll() -> int:
 	if _is_rolling:
 		push_warning("TurnManager: roll already in progress")
@@ -67,7 +74,6 @@ func request_dice_roll() -> int:
 	dice_roll_started.emit(get_current_player().player_id)
 	return _pending_roll_value
 
-## Phase 2: called after the DiceRoller animation finishes.
 func confirm_dice_roll(value: int) -> void:
 	var player := get_current_player()
 	dice_rolled.emit(player.player_id, value)
@@ -78,27 +84,25 @@ func is_roll_in_progress() -> bool:
 
 # ---- Movement ----
 
-## Move the current player clockwise by `steps` cells around the 34-cell loop.
-## Movement is modular: new_index = (old_index + steps) % LOOP_CELL_COUNT.
-## A lap is counted each time the player crosses from LOOP_END_INDEX (33) to
-## LOOP_START_INDEX (0).
+## Move the current player forward by `steps` cells using the topology.
+## A lap is counted each time the topology reports a lap boundary crossing.
 ##
 ## TODO: optional "exact finish" rule — require the player to land exactly on
 ##       LOOP_START_INDEX to complete a lap (currently any wrap counts).
 func advance_current_player(steps: int) -> void:
 	var player := get_current_player()
 	var pos := player.board_position
-	var crossed_start := false
+	var crossed_lap := false
 
 	for _i in steps:
-		if pos == GameConfig.LOOP_END_INDEX:
-			# About to wrap: 33 → 0 = crossing the start line.
-			crossed_start = true
-		pos = (pos + 1) % GameConfig.LOOP_CELL_COUNT
+		var next := _topology.next_cell(pos)
+		if _topology.is_lap_boundary(pos, next):
+			crossed_lap = true
+		pos = next
 
 	player.set_board_position(pos)
 
-	if crossed_start:
+	if crossed_lap:
 		player.increment_laps()
 		lap_completed.emit(player.player_id, player.laps_completed)
 		if player.has_finished_street() and not _finished_players.has(player.player_id):
@@ -109,14 +113,13 @@ func advance_current_player(steps: int) -> void:
 ## Resolve what happens on the cell the current player just landed on.
 func resolve_landing(cell_index: int) -> void:
 	var player := get_current_player()
-	var shop_id := _get_shop_at(cell_index)
+	var shop_id := _topology.get_shop_at(cell_index)
 	if shop_id != &"":
 		shop_landed.emit(player.player_id, shop_id)
 	else:
 		empty_cell_landed.emit(player.player_id)
 
 ## Called after every step action (movement + landing resolution) is complete.
-## Advances to the next non-finished player, or ends the game if all are done.
 func end_step_action() -> void:
 	step_action_count += 1
 
@@ -126,14 +129,12 @@ func end_step_action() -> void:
 		_emit_game_ended_once()
 		return
 
-	# Rotate to the next player who still has laps to complete.
 	for _i in total:
 		current_player_index = (current_player_index + 1) % total
 		var next_pid := GameManager.players[current_player_index].player_id
 		if not _finished_players.has(next_pid):
 			break
 
-	# Re-check: might have looped through only finished players.
 	var candidate_pid := GameManager.players[current_player_index].player_id
 	if _finished_players.has(candidate_pid):
 		_emit_game_ended_once()
@@ -157,19 +158,5 @@ func get_step_action_count() -> int:
 	return step_action_count
 
 ## Build the ordered list of cell indices the player traverses this step action.
-## Wraps modularly around the loop (e.g. from cell 33, steps=2 → [0, 1]).
 func compute_path(from: int, steps: int) -> Array[int]:
-	var path: Array[int] = []
-	var pos := from
-	for _i in steps:
-		pos = (pos + 1) % GameConfig.LOOP_CELL_COUNT
-		path.append(pos)
-	return path
-
-# ---- Internals ----
-
-func _get_shop_at(cell_index: int) -> StringName:
-	for sid: StringName in GameConfig.SHOP_CELL_INDICES:
-		if GameConfig.SHOP_CELL_INDICES[sid] == cell_index:
-			return sid
-	return &""
+	return _topology.compute_path(from, steps)
