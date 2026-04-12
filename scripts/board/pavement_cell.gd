@@ -1,11 +1,14 @@
 ## Pure traversal tile on the street.
 ## This node has no knowledge of shops — gameplay anchoring lives in
-## GameConfig.SHOP_CELL_INDICES; visual placement lives in ShopMarker.
+## the BoardGraph (BoardNode.shop_id); visual placement lives in ShopMarker.
 class_name PavementCell
 extends Node2D
 
-## Cell index on the street (0-based).
+## Legacy integer index (kept for label display).
 @export var index: int = 0
+
+## Graph node ID this cell represents.
+@export var node_id: StringName = &""
 
 var _bg: ColorRect
 var _label: Label

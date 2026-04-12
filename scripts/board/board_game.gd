@@ -9,14 +9,15 @@ extends Node2D
 @onready var dice_roller:          Control        = $UILayer/DiceRoller
 @onready var minigame_layer:       CanvasLayer    = $MinigameLayer
 
-var _tokens:        Dictionary = {}   # player_id → ColorRect
-var _finish_badges: Dictionary = {}   # player_id → Label (FINISHED overlay)
+var _tokens:        Dictionary = {}
+var _finish_badges: Dictionary = {}
 var _is_busy    := false
 var _pending_roll_value := 0
 var _safety_timer: SceneTreeTimer = null
 
-## Session RNG: randomised once per game, passed to LoopBoard.build().
 var _session_rng := RandomNumberGenerator.new()
+var _graph: BoardGraph = null
+var _intersection_panel: IntersectionPanel = null
 
 func _ready() -> void:
 	TurnManager.step_action_started.connect(_on_step_action_started)
@@ -24,30 +25,44 @@ func _ready() -> void:
 	TurnManager.empty_cell_landed.connect(_on_empty_cell_landed)
 	TurnManager.shop_landed.connect(_on_shop_landed)
 	TurnManager.lap_completed.connect(_on_lap_completed)
-	TurnManager.player_finished_street.connect(_on_player_finished_street)
+	TurnManager.player_finished_street.connect(
+		_on_player_finished_street
+	)
 	TurnManager.game_ended.connect(_on_game_ended)
-	MinigameManager.minigame_finished.connect(_on_minigame_finished)
+	TurnManager.intersection_reached.connect(
+		_on_intersection_reached
+	)
+	MinigameManager.minigame_finished.connect(
+		_on_minigame_finished
+	)
 
 	dice_button.pressed.connect(_on_dice_pressed)
-	shopping_list_button.pressed.connect(_on_shopping_list_pressed)
+	shopping_list_button.pressed.connect(
+		_on_shopping_list_pressed
+	)
 	dice_roller.roll_finished.connect(_on_dice_roll_finished)
 
 	if GameManager.players.size() < GameConfig.MIN_PLAYERS:
-		push_warning("BoardGame: not enough players (%d), adding placeholder AI" % GameManager.players.size())
+		var count := GameManager.players.size()
+		push_warning(
+			"BoardGame: not enough players (%d)" % count
+		)
 		_fill_placeholder_players()
 
-	# ── Board topology (injected into both LoopBoard and TurnManager) ──
-	# TODO: will support Paris-district topology and graph-based routing —
-	# swap this line for a different BoardTopology subclass.
 	var topology := RectangularLoopTopology.new()
+	_graph = topology.build_graph()
 
 	_session_rng.randomize()
-	loop_board.build(topology, _session_rng)
-	TurnManager.set_topology(topology)
-	_setup_camera(topology)
+	loop_board.build(_graph, _session_rng)
+	TurnManager.set_graph(_graph)
+	_setup_camera()
+	_create_intersection_panel()
 
 	GameManager.start_game()
 	GameManager.assign_shopping_lists()
+
+	for p in GameManager.players:
+		p.set_board_node(_graph.start_node_id)
 
 	_spawn_tokens()
 	TurnManager.start_game()
@@ -57,7 +72,9 @@ func _fill_placeholder_players() -> void:
 	var idx := 0
 	while GameManager.players.size() < GameConfig.MIN_PLAYERS:
 		var info := AvatarCatalog.get_avatar(ids[idx % ids.size()])
-		var pd := GameManager.register_player(info["display_name"] + " (AI)", info["color"], true)
+		var pd := GameManager.register_player(
+			info["display_name"] + " (AI)", info["color"], true
+		)
 		if pd:
 			pd.set_avatar(ids[idx % ids.size()])
 		idx += 1
@@ -70,16 +87,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # ---- Camera ----
 
-func _setup_camera(topology: BoardTopology) -> void:
+func _setup_camera() -> void:
 	var pad  := GameConfig.CAMERA_LOOP_PADDING
-	var rect := topology.get_bounding_rect()
+	var rect := _graph.get_bounding_rect()
 
 	camera.limit_left   = int(rect.position.x - pad)
 	camera.limit_top    = int(rect.position.y - pad)
 	camera.limit_right  = int(rect.end.x      + pad)
 	camera.limit_bottom = int(rect.end.y      + pad)
 
-	# Zoom out to frame the whole board on smaller viewports.
 	var vp  := get_viewport_rect().size
 	var bw  := rect.size.x + 2.0 * pad
 	var bh  := rect.size.y + 2.0 * pad
@@ -87,7 +103,6 @@ func _setup_camera(topology: BoardTopology) -> void:
 	if fit < 1.0:
 		camera.zoom = Vector2(fit, fit)
 
-	# Start the camera centred on the board.
 	camera.position = rect.position + rect.size * 0.5
 
 func _focus_camera_on(player_id: int) -> void:
@@ -95,17 +110,35 @@ func _focus_camera_on(player_id: int) -> void:
 	if token:
 		camera.position = token.position + token.size * 0.5
 
+# ---- Intersection panel ----
+
+func _create_intersection_panel() -> void:
+	var scene := load(
+		"res://scenes/ui/IntersectionPanel.tscn"
+	) as PackedScene
+	if scene == null:
+		push_error("BoardGame: cannot load IntersectionPanel")
+		return
+	_intersection_panel = scene.instantiate() as IntersectionPanel
+	add_child(_intersection_panel)
+	_intersection_panel.choice_made.connect(
+		_on_intersection_choice
+	)
+
 # ---- Tokens ----
 
 func _spawn_tokens() -> void:
-	# TODO: replace placeholder ColorRect visuals with real art once assets are available
 	for pd in GameManager.players:
 		var token := ColorRect.new()
 		token.size  = Vector2(28, 28)
 		token.color = pd.color
-		var cell := loop_board.get_cell(pd.board_position)
+		var cell := loop_board.get_cell_by_node_id(
+			pd.board_node_id
+		)
 		if cell:
-			token.position = cell.get_world_anchor() - token.size * 0.5 + _token_offset(pd.player_id)
+			var anchor := cell.get_world_anchor()
+			var off := _token_offset(pd.player_id)
+			token.position = anchor - token.size * 0.5 + off
 		tokens_layer.add_child(token)
 		_tokens[pd.player_id] = token
 
@@ -142,7 +175,9 @@ func _on_dice_pressed() -> void:
 		+ 0.5
 	)
 	_safety_timer = get_tree().create_timer(safety_duration)
-	_safety_timer.timeout.connect(_on_safety_timeout, CONNECT_ONE_SHOT)
+	_safety_timer.timeout.connect(
+		_on_safety_timeout, CONNECT_ONE_SHOT
+	)
 
 func _on_dice_roll_finished(value: int) -> void:
 	_safety_timer = null
@@ -158,7 +193,9 @@ func _on_dice_roll_finished(value: int) -> void:
 
 func _on_safety_timeout() -> void:
 	if dice_roller.is_rolling() or TurnManager.is_roll_in_progress():
-		push_warning("BoardGame: DiceRoller safety timer expired — force-confirming roll")
+		push_warning(
+			"BoardGame: safety timer expired — force-confirming"
+		)
 		_on_dice_roll_finished(_pending_roll_value)
 
 func _on_dice_rolled(_player_id: int, _value: int) -> void:
@@ -174,56 +211,144 @@ func _on_step_action_started(player_id: int) -> void:
 # ---- Movement ----
 
 func _animate_movement(steps: int) -> void:
-	var player   := TurnManager.get_current_player()
-	var from_pos := player.board_position
-	var path     := TurnManager.compute_path(from_pos, steps)
+	var player  := TurnManager.get_current_player()
+	var from_id := player.board_node_id
+	var path    := TurnManager.compute_path(from_id, steps)
 
 	if path.is_empty():
 		TurnManager.advance_current_player(steps)
-		TurnManager.resolve_landing(player.board_position)
+		TurnManager.resolve_landing(player.board_node_id)
 		return
 
 	TurnManager.advance_current_player(steps)
 
 	var token := _get_token(player.player_id)
 	if token == null:
-		TurnManager.resolve_landing(player.board_position)
+		if not TurnManager.is_awaiting_intersection():
+			TurnManager.resolve_landing(player.board_node_id)
 		return
 
 	var tween := create_tween()
-	for cell_idx in path:
-		var cell := loop_board.get_cell(cell_idx)
+	for node_id: StringName in path:
+		var cell := loop_board.get_cell_by_node_id(node_id)
 		if cell:
-			var target := cell.get_world_anchor() - token.size * 0.5 + _token_offset(player.player_id)
-			tween.tween_property(token, "position", target, GameConfig.CELL_HOP_DURATION)
+			var anchor := cell.get_world_anchor()
+			var off := _token_offset(player.player_id)
+			var target := anchor - token.size * 0.5 + off
+			tween.tween_property(
+				token, "position", target,
+				GameConfig.CELL_HOP_DURATION
+			)
 
 	tween.finished.connect(func() -> void:
 		_focus_camera_on(player.player_id)
-		TurnManager.resolve_landing(player.board_position)
+		if not TurnManager.is_awaiting_intersection():
+			TurnManager.resolve_landing(player.board_node_id)
 	)
+
+# ---- Intersection handling ----
+
+func _on_intersection_reached(
+	player_id: int, inter: Intersection
+) -> void:
+	var player := GameManager.get_player(player_id)
+	if player == null or _intersection_panel == null:
+		TurnManager.choose_intersection_path(0)
+		return
+	_intersection_panel.show_choices(inter, player)
+
+## TODO: consecutive intersections — when choose_intersection_path()
+## hits a second intersection synchronously, the token needs to animate
+## to the intermediate intersection before the next panel appears.
+## For now this edge case is not visually handled (token jumps).
+func _on_intersection_choice(choice_index: int) -> void:
+	var player := TurnManager.get_current_player()
+	var inter_id := player.board_node_id
+	var remaining := TurnManager.get_remaining_steps()
+
+	var inter_node := _graph.get_node_by_id(inter_id)
+	var clamped := clampi(
+		choice_index, 0, inter_node.next_nodes.size() - 1
+	)
+	var chosen_dest: StringName = inter_node.next_nodes[clamped]
+
+	TurnManager.choose_intersection_path(choice_index)
+
+	if TurnManager.is_awaiting_intersection():
+		return
+
+	# Build the full animation path from the chosen destination.
+	var anim_path: Array[StringName] = [chosen_dest]
+	if remaining > 1:
+		var extra := _graph.compute_path(
+			chosen_dest, remaining - 1
+		)
+		anim_path.append_array(extra)
+
+	_animate_path_then_resolve(player, anim_path)
+
+## Animate the token through a series of nodes, then resolve landing.
+func _animate_path_then_resolve(
+	player: PlayerData, path: Array[StringName]
+) -> void:
+	var token := _get_token(player.player_id)
+	if token == null:
+		if not TurnManager.is_awaiting_intersection():
+			TurnManager.resolve_landing(player.board_node_id)
+		return
+
+	if path.is_empty():
+		_focus_camera_on(player.player_id)
+		if not TurnManager.is_awaiting_intersection():
+			TurnManager.resolve_landing(player.board_node_id)
+		return
+
+	var tween := create_tween()
+	for nid: StringName in path:
+		var cell := loop_board.get_cell_by_node_id(nid)
+		if cell:
+			var anchor := cell.get_world_anchor()
+			var off := _token_offset(player.player_id)
+			var target := anchor - token.size * 0.5 + off
+			tween.tween_property(
+				token, "position", target,
+				GameConfig.CELL_HOP_DURATION
+			)
+
+	tween.finished.connect(func() -> void:
+		_focus_camera_on(player.player_id)
+		if not TurnManager.is_awaiting_intersection():
+			TurnManager.resolve_landing(player.board_node_id)
+	)
+
+# ---- Landing callbacks ----
 
 func _on_empty_cell_landed(_player_id: int) -> void:
 	TurnManager.end_step_action()
 
-func _on_shop_landed(_player_id: int, shop_id: StringName) -> void:
+func _on_shop_landed(
+	_player_id: int, shop_id: StringName
+) -> void:
 	MinigameManager.run_placeholder(shop_id, minigame_layer)
 
 # ---- Shop bounce tween (purchase feedback) ----
 
 func _on_minigame_finished(shop_id: StringName) -> void:
-	var topo := TurnManager.get_topology()
-	if topo == null:
+	if _graph == null:
 		return
-	var indices := topo.get_shop_cell_indices()
-	var cell_idx: int = indices.get(shop_id, -1)
-	if cell_idx == -1:
+	var node_id := _graph.find_shop_node_id(shop_id)
+	if node_id == &"":
 		return
-	var marker := loop_board.get_shop_marker_at_cell(cell_idx)
+	var marker := loop_board.get_shop_marker_at_node(node_id)
 	if marker == null:
 		return
 	var tween := create_tween()
-	tween.tween_property(marker, "scale", Vector2(1.15, 1.15), 0.12)
-	tween.tween_property(marker, "scale", Vector2(1.0,  1.0),  0.13)
+	tween.tween_property(
+		marker, "scale", Vector2(1.15, 1.15), 0.12
+	)
+	tween.tween_property(
+		marker, "scale", Vector2(1.0, 1.0), 0.13
+	)
 
 # ---- Lap / finish events ----
 
@@ -232,10 +357,18 @@ func _on_lap_completed(player_id: int, laps_done: int) -> void:
 	if token == null:
 		return
 	var tween := create_tween()
-	tween.tween_property(token, "scale",    Vector2(1.6, 1.6), 0.12)
-	tween.tween_property(token, "modulate", Color.WHITE * 2.0, 0.08)
-	tween.tween_property(token, "scale",    Vector2(1.0, 1.0), 0.12)
-	tween.tween_property(token, "modulate", Color.WHITE,       0.08)
+	tween.tween_property(
+		token, "scale", Vector2(1.6, 1.6), 0.12
+	)
+	tween.tween_property(
+		token, "modulate", Color.WHITE * 2.0, 0.08
+	)
+	tween.tween_property(
+		token, "scale", Vector2(1.0, 1.0), 0.12
+	)
+	tween.tween_property(
+		token, "modulate", Color.WHITE, 0.08
+	)
 	print("Player %d completed lap %d!" % [player_id, laps_done])
 
 func _on_player_finished_street(player_id: int) -> void:
@@ -256,7 +389,9 @@ func _on_player_finished_street(player_id: int) -> void:
 
 func _on_game_ended(results: Array) -> void:
 	_set_busy(true)
-	var panel_scene := load("res://scenes/ui/GameOverPanel.tscn") as PackedScene
+	var panel_scene := load(
+		"res://scenes/ui/GameOverPanel.tscn"
+	) as PackedScene
 	if panel_scene == null:
 		push_error("BoardGame: cannot load GameOverPanel.tscn")
 		return

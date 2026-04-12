@@ -44,6 +44,11 @@ const LOOP_CELL_COUNT  := 34
 const LOOP_START_INDEX := 0
 const LOOP_END_INDEX   := LOOP_CELL_COUNT - 1   # == 33
 
+## Start node ID for the default rectangular loop graph.
+## Lap completion is detected when a player revisits this node.
+## TODO: Paris-district topology will define its own start node(s).
+const LOOP_START_NODE: StringName = &"cell_0"
+
 const LOOP_TOP_COUNT    := 12   # cells 0..11
 const LOOP_RIGHT_COUNT  :=  6   # cells 12..17
 const LOOP_BOTTOM_COUNT := 11   # cells 18..28
@@ -84,6 +89,11 @@ const SHOP_INNER_MARGIN := 8.0
 
 ## Camera padding (px) outside the loop bounding rect.
 const CAMERA_LOOP_PADDING := 64.0
+
+## Seconds a player has to pick a direction at an Intersection node.
+## After timeout, the first choice (index 0) is selected automatically.
+## TODO: per-choice weighted probabilities for AI auto-pick.
+const INTERSECTION_CHOICE_TIMEOUT := 30.0
 
 # Legacy (kept for non-loop board variants)
 const PLAYER_MOVE_SPEED: float = 200.0

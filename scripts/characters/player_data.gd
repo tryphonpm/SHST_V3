@@ -9,7 +9,8 @@ signal data_changed(property_name: String)
 @export var coins: int = GameConfig.COINS_START
 @export var stars: int = 0
 @export var items: Array[String] = []
-@export var board_position: int = 0  # index into the board's space array
+## Current position in the board graph, identified by node ID.
+@export var board_node_id: StringName = &""
 @export var is_ai: bool = false
 @export var avatar_id: String = ""
 @export var shopping_list: Array[StringName] = []
@@ -36,9 +37,9 @@ func remove_item(item_key: String) -> bool:
 	data_changed.emit("items")
 	return true
 
-func set_board_position(new_pos: int) -> void:
-	board_position = new_pos
-	data_changed.emit("board_position")
+func set_board_node(id: StringName) -> void:
+	board_node_id = id
+	data_changed.emit("board_node_id")
 
 func set_shopping_list(list: Array[StringName]) -> void:
 	shopping_list = list.duplicate()
@@ -53,7 +54,6 @@ func increment_laps() -> void:
 	laps_completed += 1
 	data_changed.emit("laps_completed")
 
-## True once this player has traversed the street the required number of times.
 func has_finished_street() -> bool:
 	return laps_completed >= GameConfig.required_laps
 
@@ -74,6 +74,6 @@ func reset() -> void:
 	items.clear()
 	shopping_list.clear()
 	collected_items.clear()
-	board_position = 0
+	board_node_id = &""
 	laps_completed = 0
 	data_changed.emit("reset")
