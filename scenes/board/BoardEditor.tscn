@@ -1,0 +1,19 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/board/board_editor.gd" id="1_editor"]
+
+[node name="BoardEditor" type="Node2D"]
+script = ExtResource("1_editor")
+
+[node name="CellsLayer" type="TileMapLayer" parent="."]
+
+[node name="StreetsLayer" type="TileMapLayer" parent="."]
+
+[node name="BuildingsLayer" type="TileMapLayer" parent="."]
+
+[node name="ExportButton" type="Button" parent="."]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 176.0
+offset_bottom = 56.0
+text = "Export Graph"

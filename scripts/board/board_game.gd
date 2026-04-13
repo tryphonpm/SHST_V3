@@ -15,9 +15,15 @@ var _is_busy    := false
 var _pending_roll_value := 0
 var _safety_timer: SceneTreeTimer = null
 
+## Path to a pre-exported BoardGraph .tres file.  If non-empty, the
+## graph is loaded directly instead of building from topology code.
+## Leave empty to fall back to RectangularLoopTopology (backward compat).
+@export var board_graph_path: String = ""
+
 var _session_rng := RandomNumberGenerator.new()
 var _graph: BoardGraph = null
 var _intersection_panel: IntersectionPanel = null
+var _debug_overlay: GraphDebugOverlay = null
 
 func _ready() -> void:
 	TurnManager.step_action_started.connect(_on_step_action_started)
@@ -49,14 +55,14 @@ func _ready() -> void:
 		)
 		_fill_placeholder_players()
 
-	var topology := RectangularLoopTopology.new()
-	_graph = topology.build_graph()
+	_graph = _load_board_graph()
 
 	_session_rng.randomize()
 	loop_board.build(_graph, _session_rng)
 	TurnManager.set_graph(_graph)
 	_setup_camera()
 	_create_intersection_panel()
+	_create_debug_overlay()
 
 	GameManager.start_game()
 	GameManager.assign_shopping_lists()
@@ -84,6 +90,23 @@ func _unhandled_input(event: InputEvent) -> void:
 		_on_dice_pressed()
 	elif event.is_action_pressed("board_toggle_list"):
 		_on_shopping_list_pressed()
+
+# ---- Board graph loading ----
+
+func _load_board_graph() -> BoardGraph:
+	var path := board_graph_path
+	if path == "":
+		path = GameConfig.DEFAULT_BOARD_PATH
+	if path != "" and ResourceLoader.exists(path):
+		var res := load(path)
+		if res is BoardGraph:
+			return res as BoardGraph
+		push_warning(
+			"BoardGame: %s is not a BoardGraph — falling back"
+			% path
+		)
+	var topology := RectangularLoopTopology.new()
+	return topology.build_graph()
 
 # ---- Camera ----
 
@@ -124,6 +147,11 @@ func _create_intersection_panel() -> void:
 	_intersection_panel.choice_made.connect(
 		_on_intersection_choice
 	)
+
+func _create_debug_overlay() -> void:
+	_debug_overlay = GraphDebugOverlay.new()
+	_debug_overlay.setup(_graph)
+	loop_board.add_child(_debug_overlay)
 
 # ---- Tokens ----
 

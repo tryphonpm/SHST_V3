@@ -49,6 +49,10 @@ const LOOP_END_INDEX   := LOOP_CELL_COUNT - 1   # == 33
 ## TODO: Paris-district topology will define its own start node(s).
 const LOOP_START_NODE: StringName = &"cell_0"
 
+## Default path for a pre-exported BoardGraph .tres file.
+## If empty, BoardGame falls back to RectangularLoopTopology.
+const DEFAULT_BOARD_PATH := ""
+
 ## Street ID for the single-street backward-compat rectangular loop.
 ## In the rectangular loop topology both even and odd sides are merged
 ## into one unidirectional loop, so only the even side is populated.
