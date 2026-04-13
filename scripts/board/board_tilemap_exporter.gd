@@ -26,6 +26,11 @@ const _NEIGHBORS := [
 ## from the first street's even side.
 var start_node_override: StringName = &""
 
+## Optional intersection rule set.  If null, a default rule set
+## (all 4 transitions enabled) is used to auto-generate Intersection
+## nodes at street ends after Phase 4.
+var intersection_rules: StreetIntersectionRuleSet = null
+
 ## Intermediate structures filled during export phases.
 var _coord_to_id: Dictionary = {}   # Vector2i → StringName
 var _id_to_coord: Dictionary = {}   # StringName → Vector2i
@@ -48,6 +53,7 @@ func export_from_layer(
 	_phase3_cross_street_edges(cells_layer)
 	_phase4_build_streets()
 	var graph := _phase5_assemble(buildings_layer)
+	_phase6_street_end_intersections(graph)
 
 	return graph
 
@@ -385,6 +391,15 @@ func _compute_building_rect(
 		Vector2(min_c) * cs,
 		Vector2(max_c - min_c + Vector2i.ONE) * cs
 	)
+
+# ─────────────────────────────────────────────────────────────
+#  Phase 6 — Auto-generate Intersection nodes at street ends
+# ─────────────────────────────────────────────────────────────
+
+func _phase6_street_end_intersections(graph: BoardGraph) -> void:
+	var rules := intersection_rules if intersection_rules else StreetIntersectionRuleSet.new()
+	var builder := StreetEndIntersectionBuilder.new()
+	builder.build_intersections(graph, rules)
 
 # ─────────────────────────────────────────────────────────────
 #  Helpers

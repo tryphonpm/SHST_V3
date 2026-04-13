@@ -1,10 +1,14 @@
 ## Modal overlay shown when a player reaches an Intersection node.
-## Displays labelled buttons for each available direction plus a
-## countdown timer. Emits choice_made(index) when the player picks
-## or the timeout fires.
+## Displays labelled buttons (with direction arrows) for each
+## available direction plus a countdown timer.  Emits
+## choice_made(index) when the player picks or the timeout fires.
 ##
 ## board_game.gd instantiates this panel, calls show_choices(), and
 ## connects choice_made → TurnManager.choose_intersection_path().
+##
+## The choice_labels on Intersection nodes may contain Unicode arrow
+## prefixes (e.g. "⮜ Turn Left") added by StreetEndIntersectionBuilder.
+## These are displayed directly on the buttons.
 class_name IntersectionPanel
 extends CanvasLayer
 
@@ -36,11 +40,13 @@ func show_choices(inter: Intersection, player: PlayerData) -> void:
 
 	for i in inter.choice_count:
 		var btn := Button.new()
-		btn.text = String(inter.choice_labels[i])
+		var label_text := String(inter.choice_labels[i])
+		btn.text = label_text
 		if i < inter.choice_descriptions.size() \
 				and inter.choice_descriptions[i] != "":
 			btn.tooltip_text = inter.choice_descriptions[i]
-		btn.custom_minimum_size = Vector2(120, 48)
+		btn.custom_minimum_size = Vector2(140, 56)
+		btn.add_theme_font_size_override("font_size", 14)
 		var idx := i
 		btn.pressed.connect(func() -> void: _pick(idx))
 		_buttons_container.add_child(btn)
@@ -74,10 +80,17 @@ func _process(_delta: float) -> void:
 func _on_timeout() -> void:
 	_timer = null
 	set_process(false)
-	push_warning(
-		"IntersectionPanel: timeout — auto-selecting first choice"
-	)
-	_pick(0)
+	if GameConfig.ALLOW_AUTO_CHOOSE_FIRST:
+		push_warning(
+			"IntersectionPanel: timeout — auto-selecting first choice"
+		)
+		_pick(0)
+	else:
+		push_warning(
+			"IntersectionPanel: timeout — auto-choose disabled, "
+			+ "forcing first choice anyway"
+		)
+		_pick(0)
 
 func _cancel_timer() -> void:
 	if _timer != null:

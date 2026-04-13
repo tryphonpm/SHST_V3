@@ -123,8 +123,8 @@ func _on_intersection_reached(
 	var labels: Array[String] = []
 	for lbl: StringName in inter.choice_labels:
 		labels.append(String(lbl))
-	var joined := " | ".join(labels)
-	dice_result_label.text = "Choose: [%s]" % joined
+	var joined := "  |  ".join(labels)
+	dice_result_label.text = "Choose: %s" % joined
 
 func _on_intersection_resolved(
 	_player_id: int, _chosen_index: int

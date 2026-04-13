@@ -187,6 +187,19 @@ func find_shop_node_id(shop_id: StringName) -> StringName:
 	return &""
 
 # ─────────────────────────────────────────────────────────────
+#  Street-end intersection generation
+# ─────────────────────────────────────────────────────────────
+
+## Scan all streets for end nodes and replace them with Intersection
+## nodes offering the Parisian transition choices.  Call after streets
+## are populated but before the graph is used for gameplay.
+func generate_street_end_intersections(
+	rules: StreetIntersectionRuleSet = null
+) -> void:
+	var builder := StreetEndIntersectionBuilder.new()
+	builder.build_intersections(self, rules)
+
+# ─────────────────────────────────────────────────────────────
 #  Path computation
 # ─────────────────────────────────────────────────────────────
 

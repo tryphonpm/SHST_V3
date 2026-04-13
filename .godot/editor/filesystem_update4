@@ -20,3 +20,5 @@ res://scripts/board/board_topology.gd
 res://scripts/board/rectangular_loop_topology.gd
 res://scripts/board/board_graph.gd
 res://scripts/board/board_node.gd
+res://scripts/board/board_tilemap_exporter.gd
+res://scripts/ui/intersection_panel.gd

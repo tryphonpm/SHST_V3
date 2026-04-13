@@ -53,6 +53,10 @@ const LOOP_START_NODE: StringName = &"cell_0"
 ## If empty, BoardGame falls back to RectangularLoopTopology.
 const DEFAULT_BOARD_PATH := ""
 
+## Canonical resource path for the Paris district board graph.
+## Set to non-empty once the first TileMap-exported board is ready.
+const BOARD_GRAPH_RESOURCE := "res://data/boards/paris_district_v1.tres"
+
 ## Street ID for the single-street backward-compat rectangular loop.
 ## In the rectangular loop topology both even and odd sides are merged
 ## into one unidirectional loop, so only the even side is populated.
@@ -101,8 +105,14 @@ const CAMERA_LOOP_PADDING := 64.0
 
 ## Seconds a player has to pick a direction at an Intersection node.
 ## After timeout, the first choice (index 0) is selected automatically.
-## TODO: per-choice weighted probabilities for AI auto-pick.
 const INTERSECTION_CHOICE_TIMEOUT := 30.0
+
+## Alias kept for readability in intersection-related code.
+const INTERSECTION_TIMEOUT := INTERSECTION_CHOICE_TIMEOUT
+
+## When true, timeout at an intersection auto-selects the first choice.
+## TODO: per-choice weighted probabilities for AI auto-pick.
+const ALLOW_AUTO_CHOOSE_FIRST := true
 
 # Legacy (kept for non-loop board variants)
 const PLAYER_MOVE_SPEED: float = 200.0
