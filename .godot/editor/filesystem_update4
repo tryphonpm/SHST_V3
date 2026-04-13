@@ -18,3 +18,5 @@ res://scripts/board/shop_marker.gd
 res://scripts/board/loop_board.gd
 res://scripts/board/board_topology.gd
 res://scripts/board/rectangular_loop_topology.gd
+res://scripts/board/board_graph.gd
+res://scripts/board/board_node.gd

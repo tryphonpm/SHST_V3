@@ -49,6 +49,11 @@ const LOOP_END_INDEX   := LOOP_CELL_COUNT - 1   # == 33
 ## TODO: Paris-district topology will define its own start node(s).
 const LOOP_START_NODE: StringName = &"cell_0"
 
+## Street ID for the single-street backward-compat rectangular loop.
+## In the rectangular loop topology both even and odd sides are merged
+## into one unidirectional loop, so only the even side is populated.
+const LOOP_STREET_ID: StringName = &"loop"
+
 const LOOP_TOP_COUNT    := 12   # cells 0..11
 const LOOP_RIGHT_COUNT  :=  6   # cells 12..17
 const LOOP_BOTTOM_COUNT := 11   # cells 18..28
