@@ -57,6 +57,25 @@ func export_from_layer(
 
 	return graph
 
+## Export and save in one call.  Returns the graph on success, null on
+## failure.
+func export_and_save(
+	cells_layer: TileMapLayer,
+	buildings_layer: TileMapLayer = null,
+	path: String = GameConfig.DEFAULT_BOARD_PATH
+) -> BoardGraph:
+	var graph := export_from_layer(cells_layer, buildings_layer)
+	if graph == null:
+		push_error("BoardTilemapExporter: export returned null")
+		return null
+	var err := graph.save_to_file(path)
+	if err != OK:
+		push_error(
+			"BoardTilemapExporter: save failed (error %d)" % err
+		)
+		return null
+	return graph
+
 # ─────────────────────────────────────────────────────────────
 #  Phase 1 — Collect cells
 # ─────────────────────────────────────────────────────────────

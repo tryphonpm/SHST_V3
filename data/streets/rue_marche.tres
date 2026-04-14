@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/board/street.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"rue_marche"
+display_name = "Rue du Marché"
+even_side_nodes = [&"mar_e_0", &"mar_e_1", &"mar_e_2", &"mar_e_3"]
+odd_side_nodes = [&"mar_o_0", &"mar_o_1", &"mar_o_2", &"mar_o_3"]
+intersecting_streets = [&"rue_de_rivoli", &"rue_saint_honore"]

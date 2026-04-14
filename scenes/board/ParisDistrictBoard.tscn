@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/board/paris_district_board.gd" id="1_board"]
+[ext_resource type="Script" path="res://scripts/board/paris_district_debug_overlay.gd" id="2_debug"]
+
+[node name="ParisDistrictBoard" type="Node2D"]
+script = ExtResource("1_board")
+
+[node name="BuildingsLayer" type="TileMapLayer" parent="."]
+
+[node name="CellsLayer" type="TileMapLayer" parent="."]
+
+[node name="StreetsLayer" type="TileMapLayer" parent="."]
+
+[node name="ShopsLayer" type="TileMapLayer" parent="."]
+
+[node name="DebugOverlay" type="Node2D" parent="."]
+visible = false
+script = ExtResource("2_debug")

@@ -61,26 +61,14 @@ func export_graph() -> void:
 		return
 
 	var exporter := BoardTilemapExporter.new()
-	var graph := exporter.export_from_layer(
-		cells_layer, buildings_layer
+	var graph := exporter.export_and_save(
+		cells_layer, buildings_layer, export_path
 	)
 	if graph == null:
-		push_error("BoardEditor: export returned null")
+		push_error("BoardEditor: export_and_save returned null")
 		return
-
-	var dir := export_path.get_base_dir()
-	if not DirAccess.dir_exists_absolute(dir):
-		DirAccess.make_dir_recursive_absolute(dir)
-
-	var err := ResourceSaver.save(graph, export_path)
-	if err == OK:
-		print("BoardEditor: exported BoardGraph → %s (%d nodes)"
-			% [export_path, graph.get_node_count()])
-	else:
-		push_error(
-			"BoardEditor: save failed → %s (error %d)"
-			% [export_path, err]
-		)
+	print("BoardEditor: exported BoardGraph → %s (%d nodes)"
+		% [export_path, graph.get_node_count()])
 
 ## Editor-time validation: prints warnings for tiles missing
 ## required metadata.

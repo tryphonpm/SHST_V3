@@ -97,16 +97,23 @@ func _load_board_graph() -> BoardGraph:
 	var path := board_graph_path
 	if path == "":
 		path = GameConfig.DEFAULT_BOARD_PATH
-	if path != "" and ResourceLoader.exists(path):
-		var res := load(path)
-		if res is BoardGraph:
-			return res as BoardGraph
-		push_warning(
-			"BoardGame: %s is not a BoardGraph — falling back"
-			% path
-		)
-	var topology := RectangularLoopTopology.new()
-	return topology.build_graph()
+
+	var graph := BoardGraph.load_from_file(path)
+	if graph:
+		print("BoardGame: loaded graph from %s" % path)
+		return graph
+
+	var topology: BoardTopology
+	if GameConfig.DEFAULT_TOPOLOGY == "loop":
+		topology = RectangularLoopTopology.new()
+	else:
+		topology = ParisDistrictTopology.new()
+	graph = topology.build_graph()
+
+	if path != "" and graph:
+		graph.save_to_file(path)
+
+	return graph
 
 # ---- Camera ----
 

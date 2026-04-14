@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/board/street.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"rue_saint_honore"
+display_name = "Rue Saint-Honoré"
+even_side_nodes = [&"sth_e_0", &"sth_e_1", &"sth_e_2", &"sth_e_3", &"sth_e_4", &"sth_e_5", &"sth_e_6", &"sth_e_7"]
+odd_side_nodes = [&"sth_o_0", &"sth_o_1", &"sth_o_2", &"sth_o_3", &"sth_o_4", &"sth_o_5", &"sth_o_6", &"sth_o_7"]
+intersecting_streets = [&"rue_castiglione", &"rue_marche"]

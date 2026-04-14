@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/board/street.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"rue_castiglione"
+display_name = "Rue de Castiglione"
+even_side_nodes = [&"cas_e_0", &"cas_e_1", &"cas_e_2", &"cas_e_3"]
+odd_side_nodes = [&"cas_o_0", &"cas_o_1", &"cas_o_2", &"cas_o_3"]
+intersecting_streets = [&"rue_de_rivoli", &"rue_saint_honore"]

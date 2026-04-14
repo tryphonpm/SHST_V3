@@ -50,12 +50,21 @@ const LOOP_END_INDEX   := LOOP_CELL_COUNT - 1   # == 33
 const LOOP_START_NODE: StringName = &"cell_0"
 
 ## Default path for a pre-exported BoardGraph .tres file.
-## If empty, BoardGame falls back to RectangularLoopTopology.
-const DEFAULT_BOARD_PATH := ""
+## At startup BoardGame tries to load this file first; if the file
+## does not exist yet, the topology is built in code and the result
+## is auto-saved here for subsequent launches.
+const DEFAULT_BOARD_PATH := "res://data/boards/paris_district_v1.tres"
 
 ## Canonical resource path for the Paris district board graph.
-## Set to non-empty once the first TileMap-exported board is ready.
 const BOARD_GRAPH_RESOURCE := "res://data/boards/paris_district_v1.tres"
+
+## Which topology to use when DEFAULT_BOARD_PATH is empty.
+## "paris" = ParisDistrictTopology, "loop" = RectangularLoopTopology.
+const DEFAULT_TOPOLOGY := "paris"
+
+## TODO: Diagonal streets (Rue des Pyramides crossing at 45°)
+## TODO: One-way restrictions (some sidewalks only walkable in one dir)
+## TODO: Tram/metro transfer points (teleport between distant nodes)
 
 ## Street ID for the single-street backward-compat rectangular loop.
 ## In the rectangular loop topology both even and odd sides are merged

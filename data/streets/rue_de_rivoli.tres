@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/board/street.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"rue_de_rivoli"
+display_name = "Rue de Rivoli"
+even_side_nodes = [&"riv_e_0", &"riv_e_1", &"riv_e_2", &"riv_e_3", &"riv_e_4", &"riv_e_5", &"riv_e_6", &"riv_e_7"]
+odd_side_nodes = [&"riv_o_0", &"riv_o_1", &"riv_o_2", &"riv_o_3", &"riv_o_4", &"riv_o_5", &"riv_o_6", &"riv_o_7"]
+intersecting_streets = [&"rue_castiglione", &"rue_marche"]

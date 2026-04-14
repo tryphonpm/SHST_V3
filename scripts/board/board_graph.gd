@@ -5,15 +5,17 @@
 ## class.  The old int-index based movement is replaced by StringName
 ## node-ID traversal.
 ##
+## Persistence:
+##   Use save_to_file() / load_from_file() to round-trip via .tres.
+##   ParisDistrictTopology.build_and_save() generates the canonical
+##   paris_district_v1.tres file.  BoardGame loads it at startup.
+##
 ## Street-side model (Parisian pavements):
 ##   Each street has two directional sidewalks stored in Street.gd.
 ##   Same side parity  = same physical walking direction.
 ##   Opposite parity   = reverse physical walking direction.
 ##   Transitions at street ends are encoded as Intersection nodes by the
 ##   topology builder — see Street.gd for the full rule set.
-##
-## TODO: will support Paris-district topology and graph-based routing.
-## TODO: serialise/deserialise to .tres for hand-authored layouts.
 class_name BoardGraph
 extends Resource
 
@@ -238,3 +240,236 @@ func get_ordered_nodes() -> Array[BoardNode]:
 		if current == start_node_id:
 			break
 	return ordered
+
+# ─────────────────────────────────────────────────────────────
+#  Persistence
+# ─────────────────────────────────────────────────────────────
+
+## Save this graph to a .tres file.  Creates parent directories if
+## needed.  Returns OK on success.
+func save_to_file(path: String) -> Error:
+	var dir := path.get_base_dir()
+	if not DirAccess.dir_exists_absolute(dir):
+		DirAccess.make_dir_recursive_absolute(dir)
+	var err := ResourceSaver.save(self, path)
+	if err == OK:
+		print("BoardGraph: saved to %s (%d nodes, %d streets)"
+			% [path, get_node_count(), streets.size()])
+	else:
+		push_error("BoardGraph: save failed → %s (error %d)" % [path, err])
+	return err
+
+## Load a BoardGraph from a .tres file.  Returns null on failure.
+static func load_from_file(path: String) -> BoardGraph:
+	if not ResourceLoader.exists(path):
+		return null
+	var res := ResourceLoader.load(
+		path, "", ResourceLoader.CACHE_MODE_REPLACE
+	)
+	if res is BoardGraph:
+		return res as BoardGraph
+	push_warning("BoardGraph: '%s' is not a BoardGraph resource" % path)
+	return null
+
+# ─────────────────────────────────────────────────────────────
+#  Integrity verification
+# ─────────────────────────────────────────────────────────────
+
+## Structural integrity check.  Returns an array of warning strings.
+## Empty array = all good.
+func verify_integrity() -> Array[String]:
+	var warnings: Array[String] = []
+	if nodes.is_empty():
+		warnings.append("Graph has no nodes")
+		return warnings
+
+	if start_node_id == &"":
+		warnings.append("start_node_id is empty")
+	elif not nodes.has(start_node_id):
+		warnings.append(
+			"start_node_id '%s' not found in nodes" % start_node_id
+		)
+
+	var shop_nodes: Dictionary = {}
+	for nid: StringName in nodes:
+		var node: BoardNode = nodes[nid]
+
+		if node.id != nid:
+			warnings.append(
+				"Node key '%s' != node.id '%s'" % [nid, node.id]
+			)
+
+		for next_id: StringName in node.next_nodes:
+			if not nodes.has(next_id):
+				warnings.append(
+					"Node '%s' references missing next '%s'"
+					% [nid, next_id]
+				)
+
+		if node is Intersection:
+			var inter := node as Intersection
+			if not inter.validate():
+				warnings.append(
+					"Intersection '%s' failed validate()" % nid
+				)
+
+		if node.shop_id != &"":
+			if shop_nodes.has(node.shop_id):
+				warnings.append(
+					"Duplicate shop_id '%s' on '%s' and '%s'"
+					% [node.shop_id, shop_nodes[node.shop_id], nid]
+				)
+			shop_nodes[node.shop_id] = nid
+
+		if node.street_id != &"" and not streets.has(node.street_id):
+			warnings.append(
+				"Node '%s' street_id '%s' not in streets dict"
+				% [nid, node.street_id]
+			)
+
+	for sid: StringName in streets:
+		var st: Street = streets[sid]
+		for eid: StringName in st.even_side_nodes:
+			if not nodes.has(eid):
+				warnings.append(
+					"Street '%s' even node '%s' missing" % [sid, eid]
+				)
+		for oid: StringName in st.odd_side_nodes:
+			if not nodes.has(oid):
+				warnings.append(
+					"Street '%s' odd node '%s' missing" % [sid, oid]
+				)
+
+	return warnings
+
+## Full round-trip verification: save → reload → walk graph → check
+## shops → check node IDs.  Returns issues (empty = success).
+## Cleans up the temp file afterwards.
+static func verify_round_trip(original: BoardGraph) -> Array[String]:
+	var issues: Array[String] = []
+
+	var pre := original.verify_integrity()
+	if not pre.is_empty():
+		issues.append("PRE-SAVE integrity issues:")
+		issues.append_array(pre)
+
+	var tmp_path := "res://data/boards/_roundtrip_verify.tres"
+	var err := original.save_to_file(tmp_path)
+	if err != OK:
+		issues.append("Save failed with error %d" % err)
+		return issues
+
+	var loaded := BoardGraph.load_from_file(tmp_path)
+	if loaded == null:
+		issues.append("Reload returned null")
+		DirAccess.remove_absolute(tmp_path)
+		return issues
+
+	if loaded.get_node_count() != original.get_node_count():
+		issues.append(
+			"Node count: original %d, loaded %d"
+			% [original.get_node_count(), loaded.get_node_count()]
+		)
+	if loaded.streets.size() != original.streets.size():
+		issues.append(
+			"Street count: original %d, loaded %d"
+			% [original.streets.size(), loaded.streets.size()]
+		)
+	if loaded.start_node_id != original.start_node_id:
+		issues.append(
+			"start_node_id: original '%s', loaded '%s'"
+			% [original.start_node_id, loaded.start_node_id]
+		)
+
+	for nid: StringName in original.nodes:
+		if not loaded.nodes.has(nid):
+			issues.append("Missing node '%s' after reload" % nid)
+			continue
+		var orig_node: BoardNode = original.nodes[nid]
+		var load_node: BoardNode = loaded.nodes[nid]
+		if orig_node.position.distance_to(load_node.position) > 0.01:
+			issues.append(
+				"Node '%s' position drift: %s → %s"
+				% [nid, orig_node.position, load_node.position]
+			)
+		if orig_node.shop_id != load_node.shop_id:
+			issues.append(
+				"Node '%s' shop_id: '%s' → '%s'"
+				% [nid, orig_node.shop_id, load_node.shop_id]
+			)
+		if orig_node.next_nodes.size() != load_node.next_nodes.size():
+			issues.append(
+				"Node '%s' next_nodes count: %d → %d"
+				% [nid, orig_node.next_nodes.size(),
+				   load_node.next_nodes.size()]
+			)
+		if (orig_node is Intersection) != (load_node is Intersection):
+			issues.append(
+				"Node '%s' type mismatch: Intersection=%s → %s"
+				% [nid, orig_node is Intersection,
+				   load_node is Intersection]
+			)
+
+	for nid: StringName in loaded.nodes:
+		var node: BoardNode = loaded.nodes[nid]
+		if node.shop_id != &"":
+			var found := loaded.find_shop_node_id(node.shop_id)
+			if found != nid:
+				issues.append(
+					"Shop '%s' lookup returned '%s', expected '%s'"
+					% [node.shop_id, found, nid]
+				)
+
+	var walked: Dictionary = {}
+	var cursor := loaded.start_node_id
+	for _i in loaded.get_node_count() + 10:
+		if walked.has(cursor):
+			break
+		walked[cursor] = true
+		var wn := loaded.get_node_by_id(cursor)
+		if wn == null:
+			issues.append("Walk hit missing node '%s'" % cursor)
+			break
+		if wn.next_nodes.is_empty():
+			break
+		cursor = wn.next_nodes[0]
+	if walked.is_empty():
+		issues.append("Graph walk visited 0 nodes")
+
+	var post := loaded.verify_integrity()
+	if not post.is_empty():
+		issues.append("POST-LOAD integrity issues:")
+		issues.append_array(post)
+
+	DirAccess.remove_absolute(tmp_path)
+
+	_print_verify_summary(
+		"Round-trip", loaded, issues, walked.size()
+	)
+	return issues
+
+static func _print_verify_summary(
+	label: String, graph: BoardGraph,
+	issues: Array[String], walked: int
+) -> void:
+	var inter_count := 0
+	var shop_count := 0
+	for nid: StringName in graph.nodes:
+		var node: BoardNode = graph.nodes[nid]
+		if node is Intersection:
+			inter_count += 1
+		if node.shop_id != &"":
+			shop_count += 1
+
+	print("=== BoardGraph %s Verify ===" % label)
+	print("  Nodes: %d (intersections: %d, shops: %d)"
+		% [graph.get_node_count(), inter_count, shop_count])
+	print("  Streets: %d" % graph.streets.size())
+	print("  Start: %s" % graph.start_node_id)
+	print("  Walk reached: %d nodes" % walked)
+	if issues.is_empty():
+		print("  ALL OK")
+	else:
+		for issue in issues:
+			push_warning("  %s" % issue)
+	print("===================================")
