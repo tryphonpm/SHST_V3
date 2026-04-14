@@ -45,13 +45,14 @@ func get_graph() -> BoardGraph:
 # ═══════════════════════════════════════════════════════════════
 
 func _build_cells() -> void:
-	var ordered := _graph.get_ordered_nodes()
-	for i in ordered.size():
-		var bn: BoardNode = ordered[i]
+	for nid: StringName in _graph.nodes:
+		var bn: BoardNode = _graph.nodes[nid]
 		var cell := PavementCell.new()
-		cell.index    = i
-		cell.node_id  = bn.id
-		cell.position = bn.position
+		cell.index          = bn.display_index
+		cell.node_id        = bn.id
+		cell.position       = bn.position
+		cell.side           = bn.side
+		cell.is_intersection = bn is Intersection
 		add_child(cell)
 		_cells_by_id[bn.id] = cell
 

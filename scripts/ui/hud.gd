@@ -44,7 +44,7 @@ func _build_panels() -> void:
 
 func _create_player_panel(pd: PlayerData) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(160, 0)
+	panel.custom_minimum_size = Vector2(180, 0)
 
 	var vbox := VBoxContainer.new()
 	vbox.name = "VBox"
@@ -72,23 +72,47 @@ func _create_player_panel(pd: PlayerData) -> PanelContainer:
 	pos_label.text = _position_text(pd)
 	pos_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 
+	var street_label := Label.new()
+	street_label.name = "StreetLabel"
+	street_label.text = _street_text(pd)
+	street_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	street_label.add_theme_font_size_override("font_size", 12)
+	street_label.add_theme_color_override(
+		"font_color", Color(0.75, 0.75, 0.55)
+	)
+
 	vbox.add_child(name_label)
 	vbox.add_child(coins_label)
 	vbox.add_child(lap_label)
 	vbox.add_child(pos_label)
+	vbox.add_child(street_label)
 	panel.add_child(vbox)
 	return panel
 
 func _position_text(pd: PlayerData) -> String:
+	if pd.board_node_id == &"":
+		return "Node: ?"
+	return "Node: %s" % pd.board_node_id
+
+func _street_text(pd: PlayerData) -> String:
 	var graph := TurnManager.get_graph()
 	if graph == null or pd.board_node_id == &"":
-		return "Cell ? / ?"
-	var node := graph.get_node_by_id(pd.board_node_id)
-	if node == null:
-		return "Cell ? / ?"
-	return "Cell %d / %d" % [
-		node.display_index, graph.get_node_count()
+		return ""
+	var street := graph.get_street_at_node(pd.board_node_id)
+	if street == null:
+		return ""
+	return "%s (%s)" % [
+		street.display_name,
+		_side_label(graph, pd.board_node_id),
 	]
+
+func _side_label(graph: BoardGraph, node_id: StringName) -> String:
+	var node := graph.get_node_by_id(node_id)
+	if node == null:
+		return "?"
+	if node is Intersection:
+		return "intersection"
+	return "even" if node.side == 0 else "odd"
 
 func _refresh_step_label() -> void:
 	step_action_label.text = "Step %d" % (
@@ -146,6 +170,7 @@ func _refresh_player_panel(player_id: int) -> void:
 	var req := GameConfig.required_laps
 	vbox.get_node("LapLabel").text = "Lap %d / %d" % [laps, req]
 	vbox.get_node("PositionLabel").text = _position_text(player)
+	vbox.get_node("StreetLabel").text = _street_text(player)
 
 func _on_player_data_changed(
 	player: PlayerData, _property_name: String
