@@ -22,7 +22,7 @@ var _safety_timer: SceneTreeTimer = null
 
 var _session_rng := RandomNumberGenerator.new()
 var _graph: BoardGraph = null
-var _intersection_panel: IntersectionPanel = null
+var _intersection_panel: IntersectionChoicePanel = null
 var _debug_overlay: GraphDebugOverlay = null
 
 func _ready() -> void:
@@ -144,12 +144,12 @@ func _focus_camera_on(player_id: int) -> void:
 
 func _create_intersection_panel() -> void:
 	var scene := load(
-		"res://scenes/ui/IntersectionPanel.tscn"
+		"res://scenes/ui/IntersectionChoicePanel.tscn"
 	) as PackedScene
 	if scene == null:
-		push_error("BoardGame: cannot load IntersectionPanel")
+		push_error("BoardGame: cannot load IntersectionChoicePanel")
 		return
-	_intersection_panel = scene.instantiate() as IntersectionPanel
+	_intersection_panel = scene.instantiate() as IntersectionChoicePanel
 	add_child(_intersection_panel)
 	_intersection_panel.choice_made.connect(
 		_on_intersection_choice
